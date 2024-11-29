@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time Chat Application</title>
+    <!-- Bootstrap CSS for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+          crossorigin="anonymous">
+    <!-- SockJS library for WebSocket fallback functionality -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <!-- STOMP.js library to use the STOMP protocol over WebSocket -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.1/stomp.min.js"></script>
+</head>
+<body>
+<div class="container mt-4">
+    <!-- Page heading -->
+    <h1 class="text-center">Real Time Chat Application</h1>
+
+    <!-- Chat display area -->
+    <div id="chat" class="border rounded p-3 mb-3" style="height:300px; overflow-y:auto"></div>
+
+    <!-- Input for sender's name -->
+    <div class="input-group mb-3">
+        <input id="senderInput" type="text" class="form-control" placeholder="Your Name ......">
+    </div>
+
+    <!-- Input for message text -->
+    <div class="input-group mb-3">
+        <input id="messageInput" type="text" class="form-control" placeholder="Type something....">
+        <div id="input-group-append">
+            <!-- Button to send the message -->
+            <button id="sendMessage" class="btn btn-secondary" style="background-color: black">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variable to hold the STOMP client (used for WebSocket communication)
+    let stompClient;
+
+    /**
+     * Enables or disables the Send Message button based on connection status.
+     * @param {boolean} connected - Whether the WebSocket is connected or not.
+     */
+    function setConnection(connected) {
+        document.getElementById('sendMessage').disabled = !connected;
+    }
+
+    /**
+     * Establishes a WebSocket connection using SockJS and STOMP.
+     */
+    function connect() {
+        // Create a SockJS connection to the server endpoint "/chat"
+        const socket = new SockJS("http://localhost:8080/chat");
+
+        // Wrap the SockJS connection with the STOMP client
+        stompClient = Stomp.over(socket);
+
+        // Connect to the WebSocket and define the on-connect callback
+        stompClient.connect({}, function(frame) {
+            // Enable the Send Message button after connection is established
+            setConnection(true);
+
+            // Subscribe to the "/topic/messages" topic to receive messages
+            stompClient.subscribe('/topic/messages', function(message) {
+                // Call showMessage to display the received message
+                showMessage(JSON.parse(message.body));
+            });
+        });
+    }
+
+    /**
+     * Displays a message in the chat area.
+     * @param {Object} message - The message object with sender and content properties.
+     */
+    function showMessage(message) {
+        // Get the chat container element
+        const chat = document.getElementById('chat');
+
+        // Create a new div element for the message
+        const messageElement = document.createElement('div');
+
+        // Set the text content to show "sender: message content"
+        messageElement.textContent = message.sender + ': ' + message.content;
+
+        // Optionally, style the message (this line doesn't affect display if className is unused)
+        messageElement.className = "border-bottom mb-1";
+
+        // Append the message element to the chat container
+        chat.appendChild(messageElement);
+
+        // Scroll the chat container to the bottom to show the newest message
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    /**
+     * Sends a message to the server.
+     */
+    function sendMessage() {
+        // Retrieve the sender's name and message content from the input fields
+        const sender = document.getElementById('senderInput').value;
+        const content = document.getElementById('messageInput').value;
+
+        // Construct a message object to send
+        const chatMessage = {
+            sender: sender,
+            content: content
+        };
+
+        // Send the message to the "/app/sendMessage" endpoint using the STOMP client
+        stompClient.send("/app/sendMessage", {}, JSON.stringify(chatMessage));
+
+        // Clear the message input field after sending
+        document.getElementById('messageInput').value = '';
+    }
+
+    // Attach the sendMessage function to the Send Message button's click event
+    document.getElementById('sendMessage').onclick = sendMessage;
+
+    // Automatically connect to the WebSocket server when the page loads
+    window.onload = connect;
+</script>
+</body>
+</html>
