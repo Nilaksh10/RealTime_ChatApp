@@ -22,4 +22,9 @@ Features
 ✨ Clean and responsive UI designed with Bootstrap.
 ✨ Simple and lightweight architecture for learning and expansion.
 
+
+
+https://github.com/user-attachments/assets/4d8a5f29-fab3-4ae7-a960-e5996a75c64e
+
+
 Feel free to fork, explore, and enhance! Contributions are welcome. 😊
